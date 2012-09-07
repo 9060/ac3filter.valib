@@ -30,7 +30,7 @@ static bool init_ffmpeg()
 #ifdef _MSC_VER
     // Delayed ffmpeg dll loading support and gracefull error handling.
     // Works for any: static linking, dynamic linking, delayed linking.
-    // No need to know actual ffmpeg dll name, so need to patch it here
+    // No need to know actual ffmpeg dll name and no need to patch it here
     // after upgrade.
     const unsigned long CODE_MOD_NOT_FOUND  = 0xC06D007E; // = VcppException(ERROR_SEVERITY_ERROR, ERROR_MOD_NOT_FOUND)
     const unsigned long CODE_PROC_NOT_FOUND = 0xC06D007f; // = VcppException(ERROR_SEVERITY_ERROR, ERROR_PROC_NOT_FOUND)
