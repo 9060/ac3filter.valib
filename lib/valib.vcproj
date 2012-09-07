@@ -879,10 +879,6 @@
 				Name="dts"
 				>
 				<File
-					RelativePath="..\valib\parsers\dts\dts_defs.h"
-					>
-				</File>
-				<File
 					RelativePath="..\valib\parsers\dts\dts_header.cpp"
 					>
 				</File>
@@ -896,30 +892,6 @@
 				</File>
 				<File
 					RelativePath="..\valib\parsers\dts\dts_parser.h"
-					>
-				</File>
-				<File
-					RelativePath="..\valib\parsers\dts\dts_tables.h"
-					>
-				</File>
-				<File
-					RelativePath="..\valib\parsers\dts\dts_tables_adpcm.h"
-					>
-				</File>
-				<File
-					RelativePath="..\valib\parsers\dts\dts_tables_fir.h"
-					>
-				</File>
-				<File
-					RelativePath="..\valib\parsers\dts\dts_tables_huffman.h"
-					>
-				</File>
-				<File
-					RelativePath="..\valib\parsers\dts\dts_tables_quantization.h"
-					>
-				</File>
-				<File
-					RelativePath="..\valib\parsers\dts\dts_tables_vq.h"
 					>
 				</File>
 			</Filter>
