@@ -7,7 +7,7 @@
 #include "parsers/dts/dts_header.h"
 #include "parsers/spdif/spdif_header.h"
 #include "parsers/spdif/spdif_parser.h"
-#include "parsers/spdif/spdif_wrapper.h"
+#include "parsers/spdif/spdif_wrapper2.h"
 #include "parsers/spdif/spdifable_header.h"
 #include "source/file_parser.h"
 #include "../../../suite.h"
@@ -49,7 +49,7 @@ static void compare_file(const char *raw_file, const char *spdif_file)
   f_spdif.open_probe(spdif_file, &frame_parser_spdif);
   BOOST_REQUIRE(f_spdif.is_open());
 
-  SPDIFWrapper spdifer;
+  SpdifWrapper2 spdifer;
   compare(&f_raw, &spdifer, &f_spdif, 0);
 }
 
@@ -62,7 +62,7 @@ static void test_streams_frames(const char *filename, int streams, int frames)
   f.open_probe(filename, &frame_parser);
   BOOST_REQUIRE(f.is_open());
 
-  SPDIFWrapper parser;
+  SpdifWrapper2 parser;
   parser.open(f.get_output());
   BOOST_CHECK(parser.is_open());
 
@@ -73,21 +73,21 @@ BOOST_AUTO_TEST_SUITE(spdif_wrapper)
 
 BOOST_AUTO_TEST_CASE(constructor)
 {
-  SPDIFWrapper spdifer;
+  SpdifWrapper2 spdifer;
   BOOST_CHECK_EQUAL(spdifer.dts_mode, DTS_MODE_AUTO);
   BOOST_CHECK_EQUAL(spdifer.dts_conv, DTS_CONV_NONE);
 }
 
 BOOST_AUTO_TEST_CASE(init_constructor)
 {
-  SPDIFWrapper spdifer(DTS_MODE_WRAPPED, DTS_CONV_14BIT);
+  SpdifWrapper2 spdifer(DTS_MODE_WRAPPED, DTS_CONV_14BIT);
   BOOST_CHECK_EQUAL(spdifer.dts_mode, DTS_MODE_WRAPPED);
   BOOST_CHECK_EQUAL(spdifer.dts_conv, DTS_CONV_14BIT);
 }
 
 BOOST_AUTO_TEST_CASE(can_open)
 {
-  SPDIFWrapper spdifer;
+  SpdifWrapper2 spdifer;
   BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 0)));
   BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_DTS, 0, 0)));
   BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_MPA, 0, 0)));
@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE(dts_options)
     BOOST_REQUIRE(f_ref.is_open());
 
     DTSFrameResize resize(tests[i].frame_size);
-    SPDIFWrapper spdifer(tests[i].dts_mode, tests[i].dts_conv);
+    SpdifWrapper2 spdifer(tests[i].dts_mode, tests[i].dts_conv);
     SPDIFParser despdifer;
 
     FilterChain test(&resize, &spdifer);
