@@ -5,6 +5,7 @@
 #include "../dolby/dolby_header.h"
 #include "../dts/dts_header.h"
 #include "../mpa/mpa_header.h"
+#include "spdif_defs.h"
 
 class SpdifableFrameParser : public MultiFrameParser
 {
@@ -23,19 +24,23 @@ public:
   {
     switch (spdif_type)
     {
-      // AC3
-      case 1: return &dolby;
-      // MPA
-      case 4: // MPEG1 Layer I
-      case 5: // MPEG1 Layer II/Layer III
-      case 8: // MPEG2 LSF Layer I
-      case 9: // MPEG2 LSF Layer II/Layer III
-        return &mpa;
+      // Dolby
+      case spdif_type_ac3: return &dolby.ac3;
+      case spdif_type_eac3: return &dolby.eac3;
+
       // DTS
-      case 11: // 512 samples/frame
-      case 12: // 1024 samples/frame
-      case 13: // 2048 samples/frame
+      case spdif_type_dts_512:
+      case spdif_type_dts_1024:
+      case spdif_type_dts_2048:
         return &dts;
+
+      // MPA
+      case spdif_type_mpeg1_layer1:
+      case spdif_type_mpeg1_layer23:
+      case spdif_type_mpeg2_lsf_layer1:
+      case spdif_type_mpeg2_lsf_layer2:
+      case spdif_type_mpeg2_lsf_layer3:
+        return &mpa;
     }
     return 0;
   }
@@ -44,17 +49,23 @@ public:
   {
     switch (spdif_type)
     {
-      // AC3
-      case 1: return &dolby;
-      // MPA
-      case 4:
-      case 5:
-      case 8:
-      case 9: return &mpa;
+      // Dolby
+      case spdif_type_ac3: return &dolby.ac3;
+      case spdif_type_eac3: return &dolby.eac3;
+
       // DTS
-      case 11:
-      case 12:
-      case 13: return &dts;
+      case spdif_type_dts_512:
+      case spdif_type_dts_1024:
+      case spdif_type_dts_2048:
+        return &dts;
+
+      // MPA
+      case spdif_type_mpeg1_layer1:
+      case spdif_type_mpeg1_layer23:
+      case spdif_type_mpeg2_lsf_layer1:
+      case spdif_type_mpeg2_lsf_layer2:
+      case spdif_type_mpeg2_lsf_layer3:
+        return &mpa;
     }
     return 0;
   }
