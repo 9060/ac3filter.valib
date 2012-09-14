@@ -203,48 +203,20 @@ Levels::process(Chunk &in, Chunk &out)
   /////////////////////////////////////////////////////////
   // Find peak-levels
 
-  sample_t max;
-  sample_t *sptr;
-  sample_t *send;
-
   int nch = spk.nch();
   sample_t spk_level = 1.0 / spk.level;
 
   order_t order;
   spk.get_order(order);
 
-  size_t n = out.size;
-  while (n)
+  size_t pos = 0;
+  while (pos < out.size)
   {
-    size_t block_size = MIN(n, nsamples - sample);
-    n -= block_size;
-    sample += block_size;
+    size_t block_size = MIN(out.size - pos, nsamples - sample);
 
     for (int ch = 0; ch < nch; ch++)
     {
-      max = 0;
-      sptr = out.samples[ch];
-      send = sptr + block_size - 7;
-      while (sptr < send)
-      {
-        if (fabs(sptr[0]) > max) max = fabs(sptr[0]);
-        if (fabs(sptr[1]) > max) max = fabs(sptr[1]);
-        if (fabs(sptr[2]) > max) max = fabs(sptr[2]);
-        if (fabs(sptr[3]) > max) max = fabs(sptr[3]);
-        if (fabs(sptr[4]) > max) max = fabs(sptr[4]);
-        if (fabs(sptr[5]) > max) max = fabs(sptr[5]);
-        if (fabs(sptr[6]) > max) max = fabs(sptr[6]);
-        if (fabs(sptr[7]) > max) max = fabs(sptr[7]);
-        sptr += 8;
-      }
-      send += 7;
-      while (sptr < send)
-      {
-        if (fabs(sptr[0]) > max) max = fabs(sptr[0]);
-        sptr++;
-      }
-
-      max *= spk_level;
+      sample_t max = max_samples(0, out.samples[ch] + pos, block_size) * spk_level;
       if (max > levels[order[ch]])
         levels[order[ch]] = max;
     }
@@ -257,6 +229,8 @@ Levels::process(Chunk &in, Chunk &out)
     }
 
     continuous_time += vtime_t(block_size) / spk.sample_rate;
+    sample += block_size;
+    pos += block_size;
   }
 
   return true;
