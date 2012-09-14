@@ -33,8 +33,8 @@ bool
 ParserFilter::can_open(Speakers spk) const
 {
   for (size_t i = 0; i < list.size(); i++)
-    if ((list[i].frame_parser && list[i].filter && list[i].frame_parser->can_parse(spk.format) && list[i].filter->can_open(spk)) ||
-        (!list[i].frame_parser && list[i].filter && list[i].filter->can_open(spk)))
+    if ((list[i].frame_parser && list[i].frame_parser->can_parse(spk.format)) ||
+        (list[i].filter && list[i].filter->can_open(spk)))
       return true;
   return false;
 }
@@ -43,14 +43,13 @@ bool
 ParserFilter::open(Speakers spk)
 {
   for (size_t i = 0; i < list.size(); i++)
-    if ((list[i].frame_parser && list[i].filter && list[i].frame_parser->can_parse(spk.format) && list[i].filter->can_open(spk)) ||
-        (!list[i].frame_parser && list[i].filter && list[i].filter->can_open(spk)))
+    if ((list[i].frame_parser && list[i].frame_parser->can_parse(spk.format)) ||
+        (list[i].filter && list[i].filter->can_open(spk)))
     {
       frame_parser = list[i].frame_parser;
       filter = list[i].filter;
       sync.set_parser(frame_parser);
-      if (FilterGraph::open(spk))
-        return true;
+      return FilterGraph::open(spk);
     }
 
   if (is_open())
