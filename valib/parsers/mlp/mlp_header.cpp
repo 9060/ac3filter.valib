@@ -96,18 +96,14 @@ MlpBaseFrameParser::build_syncinfo(const uint8_t *frame, size_t size, const Fram
 }
 
 bool
-MlpBaseFrameParser::first_frame(const uint8_t *frame, size_t size)
+MlpBaseFrameParser::parse_first_frame(const uint8_t *frame, size_t size, FrameInfo &finfo)
 {
-  if (!BasicFrameParser::first_frame(frame, size))
-    return false;
   return check_frame_sequence(frame, size);
 }
 
 bool
-MlpBaseFrameParser::next_frame(const uint8_t *frame, size_t size)
+MlpBaseFrameParser::parse_next_frame(const uint8_t *frame, size_t size, FrameInfo &finfo)
 {
-  if (!BasicFrameParser::next_frame(frame, size))
-    return false;
   return check_frame_sequence(frame, size);
 }
 

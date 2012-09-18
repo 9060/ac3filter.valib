@@ -28,6 +28,9 @@ BasicFrameParser::first_frame(const uint8_t *frame, size_t size)
      (size < sync_info().min_frame_size || size > sync_info().max_frame_size))
     return false;
 
+  if (!parse_first_frame(frame, size, new_finfo))
+    return false;
+
   header.allocate(header_size());
   memcpy(header, frame, header_size());
 
@@ -60,6 +63,9 @@ BasicFrameParser::next_frame(const uint8_t *frame, size_t size)
   if (!new_finfo.frame_size && 
      // use sinfo (!) to check range
      (size < sinfo.min_frame_size || size > sinfo.max_frame_size))
+    return false;
+
+  if (!parse_next_frame(frame, size, new_finfo))
     return false;
 
   finfo = new_finfo;

@@ -468,12 +468,18 @@ public:
   virtual string    stream_info() const;
 
 protected:
-  virtual SyncInfo build_syncinfo(const uint8_t *frame, size_t size, const FrameInfo &finfo) const
-  { return sync_info(); }
-
   Rawdata   header;
   SyncInfo  sinfo;
   FrameInfo finfo;
+
+  virtual SyncInfo build_syncinfo(const uint8_t *frame, size_t size, const FrameInfo &finfo) const
+  { return sync_info(); }
+
+  virtual bool parse_first_frame(const uint8_t *frame, size_t size, FrameInfo &finfo)
+  { return true; }
+
+  virtual bool parse_next_frame(const uint8_t *frame, size_t size, FrameInfo &finfo)
+  { return true; }
 };
 
 

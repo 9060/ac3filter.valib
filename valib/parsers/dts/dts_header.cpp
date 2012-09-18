@@ -200,66 +200,16 @@ DTSFrameParser::compare_headers(const uint8_t *hdr1, const uint8_t *hdr2) const
     return false;
 }
 
-bool
-DTSFrameParser::first_frame(const uint8_t *frame, size_t size)
-{
-  FrameInfo new_finfo;
-
-  reset();
-
-  if (size < header_size())
-    return false;
-    
-  if (!parse_header(frame, &new_finfo))
-    return false;
-
-  if (!check_first_frame_size(frame, size))
-    return false;
-
-  header.allocate(header_size());
-  memcpy(header, frame, header_size());
-
-  finfo = new_finfo;
-  finfo.frame_size = size;
-  sinfo = build_syncinfo(frame, size, finfo);
-  return true;
-}
-
-bool
-DTSFrameParser::next_frame(const uint8_t *frame, size_t size)
-{
-  FrameInfo new_finfo;
-
-  if (size < header_size())
-    return false;
-
-  if (!parse_header(frame, &new_finfo))
-    return false;
-
-  if (!compare_headers(header, frame))
-    return false;
-
-  if (!check_next_frame_size(frame, size))
-    return false;
-
-  finfo = new_finfo;
-  finfo.frame_size = size;
-  return true;
-}
-
 void
 DTSFrameParser::reset()
 {
-  header.zero();
-  finfo.clear();
-//  sinfo.clear();
-
+  BasicFrameParser::reset();
   master_audio = false;
   dts_size = 0;
 }
 
 bool
-DTSFrameParser::check_first_frame_size(const uint8_t *frame, size_t size)
+DTSFrameParser::parse_first_frame(const uint8_t *frame, size_t size, FrameInfo &finfo)
 {
   static const uint32_t ma_sync = 0x64582025;
 
@@ -306,7 +256,7 @@ DTSFrameParser::check_first_frame_size(const uint8_t *frame, size_t size)
 }
 
 bool
-DTSFrameParser::check_next_frame_size(const uint8_t *frame, size_t size)
+DTSFrameParser::parse_next_frame(const uint8_t *frame, size_t size, FrameInfo &finfo)
 {
   if (master_audio)
   {
