@@ -77,7 +77,7 @@
 
 ******************************************************************************/
 
-class DolbyFrameParser : public BasicFrameParser
+class DolbyFrameParser : public FrameParser
 {
 public:
   //! Information about a subframe of an EAC3 frame
@@ -109,41 +109,55 @@ public:
 
   static const SyncTrie sync_trie;
 
-  DolbyFrameParser() {}
+  DolbyFrameParser();
 
+  // Synchronization info
   virtual bool      can_parse(int format) const;
-  virtual SyncInfo  sync_info() const { return SyncInfo(sync_trie, 12, 65536); }
+  virtual SyncInfo  sync_info() const;
 
   // Frame header operations
-  virtual size_t    header_size() const { return 12; }
+  virtual size_t    header_size() const;
   virtual bool      parse_header(const uint8_t *hdr, FrameInfo *finfo = 0) const;
   virtual bool      compare_headers(const uint8_t *hdr1, const uint8_t *hdr2) const;
 
-  // Current stream info
-  virtual string stream_info() const;
+  // Frame operations
+  virtual bool      first_frame(const uint8_t *frame, size_t size);
+  virtual bool      next_frame(const uint8_t *frame, size_t size);
+  virtual void      reset();
 
-  int num_programs() const { return program_count; }
-  int num_subframes() const { return subframe_count; }
-  const ProgramInfo &program_info(int program_num) const
+  virtual bool      in_sync() const;
+  virtual SyncInfo  sync_info2() const;
+  virtual FrameInfo frame_info() const;
+  virtual string    stream_info() const;
+
+  // EAC3 stream internals
+  inline int num_programs() const
+  { return program_count; }
+
+  inline int num_subframes() const
+  { return subframe_count; }
+
+  inline const ProgramInfo &program_info(int program_num) const
   {
     assert(program_num >= 0 && program_num < program_count);
     return programs[program_num];
   }
-  const SubframeInfo &subframe_info(int subframe_num) const
+
+  inline const SubframeInfo &subframe_info(int subframe_num) const
   {
     assert(subframe_num >= 0 && subframe_num < subframe_count);
     return subframes[subframe_num];
   }
 
 protected:
+  bool sync;
+  FrameInfo finfo;
+  SyncInfo sinfo;
+
   int program_count;
   int subframe_count;
   ProgramInfo programs[8];
   SubframeInfo subframes[64];
-
-  virtual SyncInfo build_syncinfo(const uint8_t *frame, size_t size, const FrameInfo &finfo) const;
-  virtual bool parse_first_frame(const uint8_t *frame, size_t size, FrameInfo &finfo);
-  virtual bool parse_next_frame(const uint8_t *frame, size_t size, FrameInfo &finfo);
 };
 
 #endif

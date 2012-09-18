@@ -9,7 +9,9 @@
 // 0x0b77 | 0x770b
 const SyncTrie DolbyFrameParser::sync_trie = SyncTrie(0x0b77, 16) | SyncTrie(0x770b, 16);
 
-static const size_t header_size = 12;
+static const size_t ac3_header_size = 12;
+static const size_t min_frame_size = ac3_header_size;
+static const size_t max_frame_size = 65536;
 
 static const int ac3_srate_tbl[4] =
 {
@@ -116,25 +118,21 @@ static inline bool is_eac3_bsid(int bsid)
 static inline bool is_correct_bsid(int bsid)
 { return bsid >= 0 && bsid <= 16 && bsid != 9 && bsid != 10; }
 
-static inline bool chanmap2mask(int chmap)
-{}
-
-
 static bool parse_eac3_subframe_header(const uint8_t *hdr, DolbyFrameParser::SubframeInfo &info)
 {
-  uint8_t raw_header[header_size];
+  uint8_t raw_header[ac3_header_size];
   if ((hdr[0] == 0x0b) && (hdr[1] == 0x77))
   {
     info.bs_type = BITSTREAM_8;
-    memcpy(raw_header, hdr, header_size);
+    memcpy(raw_header, hdr, ac3_header_size);
   }
   else if ((hdr[1] == 0x0b) && (hdr[0] == 0x77))
   {
     info.bs_type = BITSTREAM_16LE;
-    bs_conv_swab16(hdr, header_size, raw_header);
+    bs_conv_swab16(hdr, ac3_header_size, raw_header);
   }
 
-  ReadBS bs(raw_header, 16, header_size * 8);
+  ReadBS bs(raw_header, 16, ac3_header_size * 8);
 
   int strmtyp = bs.get(2);
   if (strmtyp == 0 || strmtyp == 2)
@@ -177,7 +175,10 @@ static bool parse_eac3_subframe_header(const uint8_t *hdr, DolbyFrameParser::Sub
   bool chanmape = bs.get_bool();
   int chanmap = 0;
   if (chanmape)
+  {
     chanmap = bs.get(16);
+    info.mask = 0; // ignore right now
+  }
 
   return true;
 }
@@ -188,19 +189,19 @@ static bool parse_ac3_subframe_header(const uint8_t *hdr, DolbyFrameParser::Subf
   info.substream_id = 0;
   info.nsamples = 1536;
 
-  uint8_t raw_header[header_size];
+  ReadBS bs;
+  uint8_t raw_header[ac3_header_size];
   if ((hdr[0] == 0x0b) && (hdr[1] == 0x77))
   {
     info.bs_type = BITSTREAM_8;
-    memcpy(raw_header, hdr, header_size);
+    bs.set(hdr, 32, ac3_header_size * 8);
   }
   else if ((hdr[1] == 0x0b) && (hdr[0] == 0x77))
   {
     info.bs_type = BITSTREAM_16LE;
-    bs_conv_swab16(hdr, header_size, raw_header);
+    bs_conv_swab16(hdr, ac3_header_size, raw_header);
+    bs.set(raw_header, 32, ac3_header_size * 8);
   }
-
-  ReadBS bs(raw_header, 32, header_size * 8);
 
   int fscod = bs.get(2);
   int frmsizecod = bs.get(6);
@@ -247,10 +248,27 @@ static bool parse_subframe_header(const uint8_t *hdr, DolbyFrameParser::Subframe
 // DolbyFrameParser
 ///////////////////////////////////////////////////////////////////////////////
 
+DolbyFrameParser::DolbyFrameParser()
+{
+  sync = false;
+}
+
 bool
 DolbyFrameParser::can_parse(int format) const
 {
   return format == FORMAT_DOLBY || format == FORMAT_EAC3 || format == FORMAT_AC3;
+}
+
+SyncInfo
+DolbyFrameParser::sync_info() const
+{
+  return SyncInfo(sync_trie, min_frame_size, max_frame_size);
+}
+
+size_t
+DolbyFrameParser::header_size() const
+{
+  return ac3_header_size;
 }
 
 bool
@@ -289,29 +307,8 @@ DolbyFrameParser::compare_headers(const uint8_t *hdr1, const uint8_t *hdr2) cons
   return sfinfo1 == sfinfo2;
 }
 
-SyncInfo
-DolbyFrameParser::build_syncinfo(const uint8_t *frame, size_t size, const FrameInfo &finfo) const
-{
-  SyncInfo result;
-  if (is_ac3_bsid(subframes[0].bsid))
-  {
-    // For AC3 frame we may use only 16bit sync.
-    uint32_t ac3_sync = be2uint16(*(uint16_t *)frame);
-    result.sync_trie = SyncTrie(ac3_sync, 16);
-  }
-  else
-  {
-    // For EAC3 frame we may use first 45bit for sync (up to bsid).
-    uint32_t eac3_sync = be2uint32(*(uint32_t *)frame);
-    result.sync_trie = SyncTrie(eac3_sync, 32);
-  }
-  result.max_frame_size = size;
-  result.min_frame_size = size;
-  return result;
-}
-
 bool
-DolbyFrameParser::parse_first_frame(const uint8_t *frame, size_t size, FrameInfo &finfo)
+DolbyFrameParser::first_frame(const uint8_t *frame, size_t size)
 {
   /////////////////////////////////////////////////////////////////////////////
   // Parse subframes
@@ -319,7 +316,7 @@ DolbyFrameParser::parse_first_frame(const uint8_t *frame, size_t size, FrameInfo
   size_t pos = 0;
   int next_program = 0;
   subframe_count = 0;
-  while (pos + ::header_size < size)
+  while (pos + ::ac3_header_size < size)
   {
     SubframeInfo &sfinfo = subframes[subframe_count];
     if (!parse_subframe_header(frame + pos, sfinfo))
@@ -405,13 +402,35 @@ DolbyFrameParser::parse_first_frame(const uint8_t *frame, size_t size, FrameInfo
     // Simple AC3 stream
     programs[0].spk.format = programs[0].spk0.format = FORMAT_AC3;
 
+  /////////////////////////////////////////////////////////////////////////////
+  // Fill frame/sync info
+
+  sync = true;
+
   finfo.spk = programs[0].spk;
+  finfo.frame_size = size;
+  finfo.nsamples = subframes[0].nsamples;
+  finfo.bs_type = subframes[0].bs_type;
+  finfo.spdif_type = 0;
+
+  // CBR only
+  sinfo.sync_trie = sync_trie;
+  sinfo.min_frame_size = size;
+  sinfo.max_frame_size = size;
+
   return true;
 }
 
 bool
-DolbyFrameParser::parse_next_frame(const uint8_t *frame, size_t size, FrameInfo &finfo)
+DolbyFrameParser::next_frame(const uint8_t *frame, size_t size)
 {
+  if (!sync)
+    return false;
+  
+  if (size != finfo.frame_size)
+    // CBR only
+    return false;
+
   /////////////////////////////////////////////////////////////////////////////
   // Parse subframes
 
@@ -419,7 +438,7 @@ DolbyFrameParser::parse_next_frame(const uint8_t *frame, size_t size, FrameInfo 
   size_t pos = 0;
   int current_subframe = 0;
 
-  while (pos + ::header_size < size)
+  while (pos + ::ac3_header_size < size)
   {
     if (!parse_subframe_header(frame + pos, sfinfo))
       return false;
@@ -434,18 +453,41 @@ DolbyFrameParser::parse_next_frame(const uint8_t *frame, size_t size, FrameInfo 
   if (current_subframe != subframe_count || pos != size)
     return false;
 
-  finfo.spk = programs[0].spk;
   return true;
+}
+
+void
+DolbyFrameParser::reset()
+{
+  sync = false;
+}
+
+bool
+DolbyFrameParser::in_sync() const
+{
+  return sync;
+}
+
+SyncInfo
+DolbyFrameParser::sync_info2() const
+{
+  return sinfo;
+}
+
+FrameInfo
+DolbyFrameParser::frame_info() const
+{
+  return finfo;
 }
 
 string
 DolbyFrameParser::stream_info() const
 {
-  if (!in_sync())
-    return BasicFrameParser::stream_info();
+  if (!sync)
+    return string("No sync\n");
 
   std::stringstream result;
-  result << BasicFrameParser::stream_info();
+  result << finfo.print();
   for (int p = 0; p < program_count; p++)
   {
     result << "Program " << p << ": " << programs[p].spk.print() << nl;
