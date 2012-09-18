@@ -20,12 +20,11 @@ public:
   static const SyncTrie sync_trie;
   MlpBaseFrameParser() {}
 
-  // Frame operations
-  virtual bool      first_frame(const uint8_t *frame, size_t size);
-  virtual bool      next_frame(const uint8_t *frame, size_t size);
-
 protected:
   virtual SyncInfo build_syncinfo(const uint8_t *frame, size_t size, const FrameInfo &finfo) const;
+  virtual bool parse_first_frame(const uint8_t *frame, size_t size, FrameInfo &finfo);
+  virtual bool parse_next_frame(const uint8_t *frame, size_t size, FrameInfo &finfo);
+
   bool check_frame_sequence(const uint8_t *frame, size_t size) const;
 };
 
