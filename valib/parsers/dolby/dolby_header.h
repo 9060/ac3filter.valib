@@ -115,7 +115,7 @@ public:
   virtual SyncInfo  sync_info() const { return SyncInfo(sync_trie, 12, 65536); }
 
   // Frame header operations
-  virtual size_t    header_size() const { return 6; }
+  virtual size_t    header_size() const { return 12; }
   virtual bool      parse_header(const uint8_t *hdr, FrameInfo *finfo = 0) const;
   virtual bool      compare_headers(const uint8_t *hdr1, const uint8_t *hdr2) const;
 
