@@ -41,6 +41,10 @@ struct spdif_header_t
 
 static const size_t header_size = sizeof(spdif_header_t);
 
+static inline bool is_14bit(int bs_type)
+{
+  return (bs_type == BITSTREAM_14LE) || (bs_type == BITSTREAM_14BE);
+}
 
 static FrameParser *find_parser(SpdifableFrameParser &spdifable, Speakers spk)
 {
@@ -103,7 +107,10 @@ SpdifWrapper2::process(Chunk &in, Chunk &out)
   out = in;
   in.clear();
   if (passthrough)
-    return true;
+  {
+    new_stream_flag = false;
+    return !out.is_dummy();
+  }
 
   uint8_t *frame = out.rawdata;
   size_t size    = out.size;
@@ -199,6 +206,8 @@ SpdifWrapper2::sync_dts(const FrameInfo &finfo, uint8_t *frame, size_t size)
       nblks = (le2uint16(hdr16[2]) << 4)  & 0x70 |
               (le2uint16(hdr16[3]) >> 10) & 0x0f;
       break;
+    default:
+      return false;
   }
 
   switch (nblks)
@@ -206,6 +215,7 @@ SpdifWrapper2::sync_dts(const FrameInfo &finfo, uint8_t *frame, size_t size)
     case 15: spdif_type = spdif_type_dts_512;  break;
     case 31: spdif_type = spdif_type_dts_1024; break;
     case 63: spdif_type = spdif_type_dts_2048; break;
+    default: return false;
   }
 
   out_spk = Speakers(FORMAT_SPDIF, finfo.spk.mask, finfo.spk.sample_rate);
@@ -299,15 +309,100 @@ size_t
 SpdifWrapper2::wrap_dts(const FrameInfo &finfo, uint8_t *frame, size_t size, uint8_t *dest)
 {
   size_t spdif_frame_size = finfo.nsamples * spdif_block_size;
-  if (spdif_frame_size > max_spdif_frame_size || size > spdif_frame_size - header_size)
-    return false;
+  bool use_header = true;
+  int spdif_bs = BITSTREAM_16LE;
+  // DTS frame may grow if conversion to 14bit stream format is used
+  bool frame_grows = (dts_conv == DTS_CONV_14BIT) && !is_14bit(finfo.bs_type);
+  // DTS frame may shrink if conversion to 16bit stream format is used
+  bool frame_shrinks = (dts_conv == DTS_CONV_16BIT) && is_14bit(finfo.bs_type);
 
-  size_t payload_size = bs_convert(frame, size, finfo.bs_type, dest + header_size, BITSTREAM_16LE);
-  assert(payload_size <= max_spdif_frame_size - header_size);
-  memset(dest + header_size + payload_size, 0, spdif_frame_size - header_size - payload_size);
+  switch (dts_mode)
+  {
+  case DTS_MODE_WRAPPED:
+    use_header = true;
+    if (frame_grows && (size * 8 / 7 <= spdif_frame_size - header_size))
+      spdif_bs = BITSTREAM_14LE;
+    else if (frame_shrinks && (size * 7 / 8 <= spdif_frame_size - header_size))
+      spdif_bs = BITSTREAM_16LE;
+    else if (size <= spdif_frame_size - header_size)
+      spdif_bs = is_14bit(finfo.bs_type)? BITSTREAM_14LE: BITSTREAM_16LE;
+    else
+      return false;
+    break;
 
-  spdif_header_t *header = (spdif_header_t *)dest;
-  header->set(spdif_type, (uint16_t)payload_size * 8);
+  case DTS_MODE_PADDED:
+    use_header = false;
+    if (frame_grows && (size * 8 / 7 <= spdif_frame_size))
+      spdif_bs = BITSTREAM_14LE;
+    else if (frame_shrinks && (size * 7 / 8 <= spdif_frame_size))
+      spdif_bs = BITSTREAM_16LE;
+    else if (size <= spdif_frame_size)
+      spdif_bs = is_14bit(finfo.bs_type)? BITSTREAM_14LE: BITSTREAM_16LE;
+    else
+      return false;
+    break;
+
+  case DTS_MODE_AUTO:
+  default:
+    if (frame_grows && (size * 8 / 7 <= spdif_frame_size - header_size))
+    {
+      use_header = true;
+      spdif_bs = BITSTREAM_14LE;
+    }
+    else if (frame_grows && (size * 8 / 7 <= spdif_frame_size))
+    {
+      use_header = false;
+      spdif_bs = BITSTREAM_14LE;
+    }
+    else if (frame_shrinks && (size * 7 / 8 <= spdif_frame_size - header_size))
+    {
+      use_header = true;
+      spdif_bs = BITSTREAM_16LE;
+    }
+    else if (frame_shrinks && (size * 7 / 8 <= spdif_frame_size))
+    {
+      use_header = false;
+      spdif_bs = BITSTREAM_16LE;
+    }
+    else if (size <= spdif_frame_size - header_size)
+    {
+      use_header = true;
+      spdif_bs = is_14bit(finfo.bs_type)? BITSTREAM_14LE: BITSTREAM_16LE;
+    }
+    else if (size <= spdif_frame_size)
+    {
+      use_header = false;
+      spdif_bs = is_14bit(finfo.bs_type)? BITSTREAM_14LE: BITSTREAM_16LE;
+    }
+    else
+      return false;
+    break;
+  }
+
+  if (use_header)
+  {
+    size_t payload_size = bs_convert(frame, size, finfo.bs_type, dest + header_size, spdif_bs);
+    assert(payload_size < max_spdif_frame_size - header_size);
+    memset(dest + header_size + payload_size, 0, spdif_frame_size - header_size - payload_size);
+
+    // We must correct DTS synword when converting to 14bit
+    if (spdif_bs == BITSTREAM_14LE)
+      dest[header_size + 3] = 0xe8;
+
+    spdif_header_t *header = (spdif_header_t *)dest;
+    header->set(finfo.spdif_type, (uint16_t)payload_size * 8);
+  }
+  else
+  {
+    size_t payload_size = bs_convert(frame, size, finfo.bs_type, dest, spdif_bs);
+    assert(payload_size < max_spdif_frame_size);
+    memset(dest + payload_size, 0, spdif_frame_size - payload_size);
+
+    // We must correct DTS synword when converting to 14bit
+    if (spdif_bs == BITSTREAM_14LE)
+      dest[3] = 0xe8;
+  }
+
   return spdif_frame_size;
 }
 
