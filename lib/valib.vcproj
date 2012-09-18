@@ -1019,14 +1019,6 @@
 				Name="eac3"
 				>
 				<File
-					RelativePath="..\valib\parsers\eac3\eac3_header.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\valib\parsers\eac3\eac3_header.h"
-					>
-				</File>
-				<File
 					RelativePath="..\valib\parsers\eac3\eac3_parser.cpp"
 					>
 				</File>

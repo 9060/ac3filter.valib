@@ -46,8 +46,8 @@ static FrameParser *find_parser(SpdifableFrameParser &spdifable, Speakers spk)
 {
   switch (spk.format)
   {
-    case FORMAT_AC3:  return &spdifable.dolby.ac3;
-    case FORMAT_EAC3: return &spdifable.dolby.eac3;
+    case FORMAT_AC3:  return &spdifable.dolby;
+    case FORMAT_EAC3: return &spdifable.dolby;
     case FORMAT_DTS:  return &spdifable.dts;
     case FORMAT_MPA:  return &spdifable.mpa;
   }
@@ -291,7 +291,7 @@ SpdifWrapper2::wrap_eac3(const FrameInfo &finfo, uint8_t *frame, size_t size, ui
   memset(dest + header_size + payload_size, 0, hdmi_frame_size - header_size - payload_size);
 
   spdif_header_t *header = (spdif_header_t *)dest;
-  header->set(spdif_type, (uint16_t)payload_size * 8);
+  header->set(spdif_type, (uint16_t)payload_size);
   return hdmi_frame_size;
 }
 

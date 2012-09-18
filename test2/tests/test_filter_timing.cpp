@@ -5,7 +5,7 @@
 #include <boost/test/unit_test.hpp>
 #include "fir/param_fir.h"
 #include "parsers/ac3/ac3_header.h"
-#include "parsers/eac3/eac3_header.h"
+#include "parsers/dolby/dolby_header.h"
 #include "source/file_parser.h"
 #include "source/generator.h"
 #include "source/raw_source.h"
@@ -731,7 +731,7 @@ BOOST_AUTO_TEST_CASE(dts_parser)
 
 BOOST_AUTO_TEST_CASE(eac3_parser)
 {
-  EAC3FrameParser frame_parser;
+  DolbyFrameParser frame_parser;
   EAC3Parser filter;
   FileParser source;
   source.open_probe("test.eac3.03f.eac3", &frame_parser);
@@ -799,7 +799,7 @@ BOOST_AUTO_TEST_CASE(frame_splitter)
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.ac3.03f.ac3",   &AC3FrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.aac.03f.adts",  &ADTSFrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.dts.03f.dts",   &DTSFrameParser());
-  parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "test.eac3.03f.eac3", &EAC3FrameParser());
+  parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "test.eac3.03f.eac3", &DolbyFrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.mp2.005.mp2",   &MPAFrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.ac3.03f.spdif", &SPDIFFrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.dts.03f.spdif", &SPDIFFrameParser());
@@ -818,10 +818,10 @@ BOOST_AUTO_TEST_CASE(parser_filter)
   SPDIFParser spdif;
 
   ParserFilter filter;
-  filter.add(&uni.ac3,   &ac3);
+  filter.add(&uni.dolby, &ac3);
   filter.add(&uni.adts,  &adts);
   filter.add(&uni.dts,   &dts);
-  filter.add(&uni.eac3,  &eac3);
+  filter.add(&uni.dolby, &eac3);
   filter.add(&uni.mpa,   &mpa);
   filter.add(&uni.spdif, &spdif);
 
@@ -837,7 +837,7 @@ BOOST_AUTO_TEST_CASE(parser_filter)
   parser_timing(Speakers(FORMAT_AC3,   0, 0), &filter, "a.ac3.03f.ac3",   &AC3FrameParser());
   parser_timing(Speakers(FORMAT_AAC_ADTS, 0, 0), &filter, "a.aac.03f.adts",  &ADTSFrameParser());
   parser_timing(Speakers(FORMAT_DTS,   0, 0), &filter, "a.dts.03f.dts",   &DTSFrameParser());
-  parser_timing(Speakers(FORMAT_EAC3,  0, 0), &filter, "test.eac3.03f.eac3", &EAC3FrameParser());
+  parser_timing(Speakers(FORMAT_EAC3,  0, 0), &filter, "test.eac3.03f.eac3", &DolbyFrameParser());
   parser_timing(Speakers(FORMAT_MPA,   0, 0), &filter, "a.mp2.005.mp2",   &MPAFrameParser());
   parser_timing(Speakers(FORMAT_SPDIF, 0, 0), &filter, "a.ac3.03f.spdif", &SPDIFFrameParser());
   parser_timing(Speakers(FORMAT_SPDIF, 0, 0), &filter, "a.dts.03f.spdif", &SPDIFFrameParser());
@@ -859,7 +859,7 @@ BOOST_AUTO_TEST_CASE(audio_decoder)
   parser_timing(Speakers(FORMAT_AC3,  0, 0), &filter, "a.ac3.03f.ac3",  &AC3FrameParser());
   //parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.aac.03f.adts", &ADTSFrameParser());
   parser_timing(Speakers(FORMAT_DTS,  0, 0), &filter, "a.dts.03f.dts",  &DTSFrameParser());
-  parser_timing(Speakers(FORMAT_EAC3, 0, 0), &filter, "test.eac3.03f.eac3", &EAC3FrameParser());
+  parser_timing(Speakers(FORMAT_EAC3, 0, 0), &filter, "test.eac3.03f.eac3", &DolbyFrameParser());
   parser_timing(Speakers(FORMAT_MPA,  0, 0), &filter, "a.mp2.005.mp2",  &MPAFrameParser());
 }
 
@@ -883,7 +883,7 @@ BOOST_AUTO_TEST_CASE(detector)
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.ac3.03f.ac3",   &AC3FrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.aac.03f.adts",  &ADTSFrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.dts.03f.dts",   &DTSFrameParser());
-  parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "test.eac3.03f.eac3", &EAC3FrameParser());
+  parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "test.eac3.03f.eac3", &DolbyFrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.mp2.005.mp2",   &MPAFrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.ac3.03f.spdif", &SPDIFFrameParser());
   parser_timing(Speakers(FORMAT_RAWDATA, 0, 0), &filter, "a.dts.03f.spdif", &SPDIFFrameParser());

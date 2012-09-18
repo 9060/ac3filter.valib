@@ -37,12 +37,10 @@ public:
   {
     dolby.add_filter(&ac3);
     dolby.add_filter(&eac3);
-    add(&uni_frame_parser.ac3,    &ac3);
-    add(&uni_frame_parser.eac3,   &eac3);
+    add(&uni_frame_parser.dolby,  &dolby);
     add(&uni_frame_parser.dts,    &dts);
     add(&uni_frame_parser.mpa,    &mpa);
     add(&uni_frame_parser.mlp,    &mlp);
-    add(&uni_frame_parser.dolby,  &dolby);
     add(&aac);
     add(&flac);
     add(&vorbis);

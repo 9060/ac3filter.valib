@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE(constructor)
 
 BOOST_AUTO_TEST_CASE(init_constructor)
 {
-  AC3FrameParser frame_parser;
+  DolbyFrameParser frame_parser;
   StreamBuffer buf(&frame_parser);
 
   BOOST_CHECK(buf.get_parser() == &frame_parser);
@@ -289,7 +289,7 @@ BOOST_AUTO_TEST_CASE(init_constructor)
 
 BOOST_AUTO_TEST_CASE(set_parser)
 {
-  AC3FrameParser frame_parser1;
+  DolbyFrameParser frame_parser1;
   DTSFrameParser frame_parser2;
 
   MultiFrameParser bad_parser; // MultiHeader without parsers set
@@ -357,8 +357,8 @@ BOOST_AUTO_TEST_CASE(sync)
     { "a.mp2.002.mp2",   "UnknownFrameSize", &unknown_frame_size },
     // Real parsers
     { "a.aac.03f.adts",     "ADTSFrameParser",  &uni.adts  },
-    { "a.ac3.005.ac3",      "AC3FrameParser",   &uni.ac3   },
-    { "test.eac3.03f.eac3", "EAC3FrameParser",  &uni.eac3  },
+    { "a.ac3.005.ac3",      "DolbyFrameParser", &uni.dolby },
+    { "test.eac3.03f.eac3", "DolbyFrameParser", &uni.dolby },
     { "a.dts.03f.dts",      "DTSFrameParser",   &uni.dts   },
     { "a.mp2.002.mp2",      "MPAFrameParser",   &uni.mpa   },
     { "a.ac3.03f.spdif",    "SPDIFFrameParser", &uni.spdif },
@@ -427,12 +427,12 @@ BOOST_AUTO_TEST_CASE(file_passthrough)
     { "a.mp2.mix.mp2", "UnknownFrameSize", &unknown_frame_size, 3, 1500 },
 
     // Real parsers
-    { "a.aac.03f.adts",     "ADTSFrameParser",  &uni.adts,1, 564  },
-    { "a.ac3.005.ac3",      "AC3FrameParser",   &uni.ac3, 1, 375  },
-    { "a.ac3.03f.ac3",      "AC3FrameParser",   &uni.ac3, 1, 375  },
-    { "a.ac3.mix.ac3",      "AC3FrameParser",   &uni.ac3, 3, 1500 },
-    { "test.eac3.03f.eac3", "EAC3FrameParser",  &uni.eac3,1, 819  },
-    { "a.dts.03f.dts",      "DTSFrameParser",   &uni.dts, 1, 1125 },
+    { "a.aac.03f.adts",     "ADTSFrameParser",  &uni.adts,  1, 564  },
+    { "a.ac3.005.ac3",      "DolbyFrameParser", &uni.dolby, 1, 375  },
+    { "a.ac3.03f.ac3",      "DolbyFrameParser", &uni.dolby, 1, 375  },
+    { "a.ac3.mix.ac3",      "DolbyFrameParser", &uni.dolby, 3, 1500 },
+    { "test.eac3.03f.eac3", "DolbyFrameParser", &uni.dolby, 1, 819  },
+    { "a.dts.03f.dts",      "DTSFrameParser",   &uni.dts,   1, 1125 },
     // We cannot load the last frame of SPDIF/DTS stream.
     // See note at StreamBuffer class comments.
     { "a.dts.03f.spdif",    "DTSFrameParser",   &uni.dts, 1, 1124 },
@@ -473,8 +473,7 @@ BOOST_AUTO_TEST_CASE(noise_passthrough)
   passthrough_test(&unknown_frame_size, noise, noise.size(), 0, 0);
   // Real parsers
   passthrough_test(&uni.adts,  noise, noise.size(), 0, 0);
-  passthrough_test(&uni.ac3,   noise, noise.size(), 0, 0);
-  passthrough_test(&uni.eac3,  noise, noise.size(), 0, 0);
+  passthrough_test(&uni.dolby, noise, noise.size(), 0, 0);
   passthrough_test(&uni.dts,   noise, noise.size(), 0, 0);
   passthrough_test(&uni.mpa,   noise, noise.size(), 0, 0);
   passthrough_test(&uni.spdif, noise, noise.size(), 0, 0);

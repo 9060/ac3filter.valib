@@ -39,3 +39,4 @@
 #include "parsers/mpa/mpa_mpg123.h"
 #include "parsers/mpa/mpa_parser.h"
 #include "parsers/spdif/spdif_parser.h"
+#include "parsers/spdif/spdif_wrapper.h"
