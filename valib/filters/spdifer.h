@@ -25,7 +25,7 @@ class Spdifer : public ParserFilter
 {
 protected:
   SpdifableFrameParser frame_parser;
-  SPDIFWrapper spdif_wrapper;
+  SpdifWrapper spdif_wrapper;
 
 public:
   Spdifer(int dts_mode = DTS_MODE_AUTO, int dts_conv = DTS_CONV_NONE):

@@ -772,7 +772,7 @@ BOOST_AUTO_TEST_CASE(spdif_parser)
 BOOST_AUTO_TEST_CASE(spdif_wrapper)
 {
   AC3FrameParser frame_parser;
-  SPDIFWrapper filter;
+  SpdifWrapper filter;
   FileParser source;
   source.open_probe("a.ac3.03f.ac3", &frame_parser);
   BOOST_REQUIRE(source.is_open());

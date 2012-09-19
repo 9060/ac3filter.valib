@@ -660,7 +660,7 @@ BOOST_AUTO_TEST_CASE(spdif_parser)
 
 BOOST_AUTO_TEST_CASE(spdif_wrapper)
 {
-  SPDIFWrapper filter;
+  SpdifWrapper filter;
   open_stress_test(&filter);
 
   FileParser source;
