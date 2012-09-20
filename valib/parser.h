@@ -225,6 +225,8 @@ struct FrameInfo
   {
     return nsamples? frame_size * 8 * spk.sample_rate / nsamples: 0;
   }
+
+  string print() const;
 };
 
 

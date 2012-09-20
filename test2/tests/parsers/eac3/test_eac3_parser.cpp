@@ -5,7 +5,7 @@
 #include <boost/test/unit_test.hpp>
 #include "filters/convert.h"
 #include "parsers/eac3/eac3_parser.h"
-#include "parsers/eac3/eac3_header.h"
+#include "parsers/dolby/dolby_header.h"
 #include "source/file_parser.h"
 #include "source/wav_source.h"
 #include "../../../suite.h"
@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(constructor)
 BOOST_AUTO_TEST_CASE(streams_frames)
 {
   FileParser f;
-  EAC3FrameParser frame_parser;
+  DolbyFrameParser frame_parser;
   f.open_probe("test.eac3.03f.eac3", &frame_parser);
   BOOST_REQUIRE(f.is_open());
   BOOST_CHECK_EQUAL(f.get_output(), Speakers(FORMAT_EAC3, MODE_5_1, 48000));
