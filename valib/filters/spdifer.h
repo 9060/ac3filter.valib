@@ -14,7 +14,7 @@
 #define VALIB_SPDIFER_H
 
 #include "parser_filter.h"
-#include "../parsers/spdif/spdif_wrapper2.h"
+#include "../parsers/spdif/spdif_wrapper.h"
 #include "../parsers/spdif/spdif_header.h"
 #include "../parsers/spdif/spdif_parser.h"
 #include "../parsers/spdif/spdifable_header.h"
@@ -25,7 +25,7 @@ class Spdifer : public ParserFilter
 {
 protected:
   SpdifableFrameParser frame_parser;
-  SpdifWrapper2 spdif_wrapper;
+  SpdifWrapper spdif_wrapper;
 
 public:
   Spdifer(int dts_mode = DTS_MODE_AUTO, int dts_conv = DTS_CONV_NONE):

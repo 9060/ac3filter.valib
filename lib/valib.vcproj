@@ -971,14 +971,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\valib\parsers\spdif\spdif_wrapper2.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\valib\parsers\spdif\spdif_wrapper2.h"
-					>
-				</File>
-				<File
 					RelativePath="..\valib\parsers\spdif\spdifable_header.cpp"
 					>
 				</File>
