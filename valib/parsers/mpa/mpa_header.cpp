@@ -155,29 +155,6 @@ MPAFrameParser::parse_header(const uint8_t *hdr, FrameInfo *finfo) const
 
   finfo->nsamples = layer == 0? 384: 1152;
   finfo->bs_type = bs_type;
-
-  switch (ver)
-  {
-  case 0:
-    // MPEG1
-    if (layer == 0)
-      finfo->spdif_type = 0x0004; // Pc burst-info (data type = MPEG1 Layer I) 
-    else
-      finfo->spdif_type = 0x0005; // Pc burst-info (data type = MPEG1/2 Layer II/III) 
-    break;
-
-  case 1:
-    // MPEG2 LSF
-    if (layer == 0)
-      finfo->spdif_type = 0x0008; // Pc burst-info (data type = MPEG2 Layer I LSF) 
-    else
-      finfo->spdif_type = 0x0009; // Pc burst-info (data type = MPEG2 Layer II/III LSF) 
-
-  default:
-    // MPEG2.5 is non-standard.
-    finfo->spdif_type = 0;
-  }
-
   return true;
 }
 

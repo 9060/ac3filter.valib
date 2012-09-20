@@ -27,7 +27,6 @@ PESFrameParser::parse_header(const uint8_t *hdr, FrameInfo *finfo) const
     finfo->frame_size = packet_size;
     finfo->nsamples = 0;
     finfo->bs_type = BITSTREAM_8;
-    finfo->spdif_type = 0;
   }
 
   return true;

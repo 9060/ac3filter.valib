@@ -160,7 +160,6 @@ MlpFrameParser::parse_header(const uint8_t *hdr, FrameInfo *finfo) const
     finfo->frame_size = 0; // Unknown frame size
     finfo->nsamples = 0;
     finfo->bs_type = BITSTREAM_8;
-    finfo->spdif_type = 0;
   }
   return true;
 }
@@ -207,7 +206,6 @@ TruehdFrameParser::parse_header(const uint8_t *hdr, FrameInfo *finfo) const
     finfo->frame_size = 0;
     finfo->nsamples = 0;
     finfo->bs_type = BITSTREAM_8;
-    finfo->spdif_type = 0;
   }
   return true;
 }

@@ -24,8 +24,6 @@ FrameInfo::print() const
   result << "Frame size: " << frame_size << nl;
   result << "Samples: " << nsamples << nl;
   result << "Bitrate: " << int(bitrate() / 1000) << "kbps\n";
-  if (spdif_type)
-    result << "SPDIF stream type: 0x" << std::hex << spdif_type << nl;
   return result.str();
 }
 

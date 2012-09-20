@@ -184,10 +184,6 @@ struct SyncInfo :
   \var int FrameInfo::bs_type;
     Bitstream type. BITSTREAM_NONE if not filled.
 
-  \var uint16_t FrameInfo::spdif_type;
-    If given format is spdifable it defines spdif packet type (Pc burst-info).
-    Zero otherwise. This field may be used to determine spdifable format.
-
   \fn void FrameInfo::clear();
     Clear all information.
 
@@ -202,14 +198,12 @@ struct FrameInfo
   size_t   frame_size;
   size_t   nsamples;
   int      bs_type;
-  uint16_t spdif_type;
 
   FrameInfo(): 
     spk(spk_unknown),
     frame_size(0),
     nsamples(0),
-    bs_type(BITSTREAM_NONE),
-    spdif_type(0)
+    bs_type(BITSTREAM_NONE)
   {}
 
   void clear()
@@ -218,7 +212,6 @@ struct FrameInfo
     frame_size = 0;
     nsamples = 0;
     bs_type = 0;
-    spdif_type = 0;
   }
 
   size_t bitrate() const
