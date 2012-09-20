@@ -292,7 +292,6 @@ DolbyFrameParser::parse_header(const uint8_t *hdr, FrameInfo *finfo) const
     finfo->frame_size = 0;
     finfo->nsamples = subframe_info.nsamples;
     finfo->bs_type = subframe_info.bs_type;
-    finfo->spdif_type = 0;
   }
   return true;
 }
@@ -411,7 +410,6 @@ DolbyFrameParser::first_frame(const uint8_t *frame, size_t size)
   finfo.frame_size = size;
   finfo.nsamples = subframes[0].nsamples;
   finfo.bs_type = subframes[0].bs_type;
-  finfo.spdif_type = 0;
 
   // CBR only
   sinfo.sync_trie = sync_trie;

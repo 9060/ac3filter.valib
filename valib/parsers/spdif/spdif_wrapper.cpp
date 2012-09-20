@@ -390,7 +390,7 @@ SpdifWrapper::wrap_dts(const FrameInfo &finfo, uint8_t *frame, size_t size, uint
       dest[header_size + 3] = 0xe8;
 
     spdif_header_t *header = (spdif_header_t *)dest;
-    header->set(finfo.spdif_type, (uint16_t)payload_size * 8);
+    header->set(spdif_type, (uint16_t)payload_size * 8);
   }
   else
   {

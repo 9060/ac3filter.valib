@@ -113,15 +113,6 @@ DTSFrameParser::parse_header(const uint8_t *hdr, FrameInfo *finfo) const
   finfo->frame_size = 0; // do not rely on the frame size specified at the header!!!
   finfo->nsamples = nblks * 32;
   finfo->bs_type = bs_type;
-
-  switch (finfo->nsamples)
-  {
-    case 512:  finfo->spdif_type = 11; break;
-    case 1024: finfo->spdif_type = 12; break;
-    case 2048: finfo->spdif_type = 13; break;
-    default:   finfo->spdif_type = 0;  break; // cannot do SPDIF passthrough
-  }
-
   return true;
 }
 

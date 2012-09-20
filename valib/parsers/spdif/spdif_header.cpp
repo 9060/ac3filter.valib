@@ -62,7 +62,6 @@ SPDIFFrameParser::parse_header(const uint8_t *hdr, FrameInfo *finfo) const
     finfo->frame_size = subinfo.nsamples * 4;
     finfo->nsamples = subinfo.nsamples;
     finfo->bs_type = BITSTREAM_16LE;
-    finfo->spdif_type = 0;
   }
   return true;
 }
