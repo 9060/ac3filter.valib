@@ -4,6 +4,32 @@
 using std::stringstream;
 
 ///////////////////////////////////////////////////////////////////////////////
+// FrameInfo
+///////////////////////////////////////////////////////////////////////////////
+
+string
+FrameInfo::print() const
+{
+  std::stringstream result;
+  result << "Stream format: " << spk.print() << nl;
+  switch (bs_type)
+  {
+    case BITSTREAM_8:    result << "Bitstream type: byte stream\n"; break;
+    case BITSTREAM_16BE: result << "Bitstream type: 16bit big endian\n"; break;
+    case BITSTREAM_16LE: result << "Bitstream type: 16bit low endian\n"; break;
+    case BITSTREAM_14BE: result << "Bitstream type: 14bit big endian\n"; break;
+    case BITSTREAM_14LE: result << "Bitstream type: 14bit low endian\n"; break;
+    default:             result << "Bitstream type: unknown\n"; break;
+  }
+  result << "Frame size: " << frame_size << nl;
+  result << "Samples: " << nsamples << nl;
+  result << "Bitrate: " << int(bitrate() / 1000) << "kbps\n";
+  if (spdif_type)
+    result << "SPDIF stream type: 0x" << std::hex << spdif_type << nl;
+  return result.str();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // BasicFrameParser
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -86,30 +112,7 @@ BasicFrameParser::stream_info() const
 {
   if (!in_sync())
     return string("No sync\n");
-
-  FrameInfo i = frame_info();
-  std::stringstream result;
-
-  result << "Stream format: " << i.spk.print() << nl;
-
-  switch (i.bs_type)
-  {
-    case BITSTREAM_8:    result << "Bitstream type: byte stream\n"; break;
-    case BITSTREAM_16BE: result << "Bitstream type: 16bit big endian\n"; break;
-    case BITSTREAM_16LE: result << "Bitstream type: 16bit low endian\n"; break;
-    case BITSTREAM_14BE: result << "Bitstream type: 14bit big endian\n"; break;
-    case BITSTREAM_14LE: result << "Bitstream type: 14bit low endian\n"; break;
-    default:             result << "Bitstream type: unknown\n"; break;
-  }
-
-  result << "Frame size: " << i.frame_size << nl;
-  result << "Samples: " << i.nsamples << nl;
-  result << "Bitrate: " << int(i.bitrate() / 1000) << "kbps\n";
-
-  if (i.spdif_type)
-    result << "SPDIF stream type: 0x" << std::hex << i.spdif_type << nl;
-
-  return result.str();
+  return frame_info().print();
 };
 
 ///////////////////////////////////////////////////////////////////////////////

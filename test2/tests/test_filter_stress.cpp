@@ -14,7 +14,7 @@
 #include "filter.h"
 #include "parsers/aac/aac_adts_header.h"
 #include "parsers/ac3/ac3_header.h"
-#include "parsers/eac3/eac3_header.h"
+#include "parsers/dolby/dolby_header.h"
 #include "source/file_parser.h"
 #include "source/generator.h"
 #include "source/raw_source.h"
@@ -608,7 +608,7 @@ BOOST_AUTO_TEST_CASE(eac3_parser)
   open_stress_test(&filter);
 
   FileParser source;
-  EAC3FrameParser frame_parser;
+  DolbyFrameParser frame_parser;
   source.open_probe("test.eac3.03f.eac3", &frame_parser);
   BOOST_REQUIRE(source.is_open());
   filter_stress_test(&filter, &source);
@@ -660,7 +660,7 @@ BOOST_AUTO_TEST_CASE(spdif_parser)
 
 BOOST_AUTO_TEST_CASE(spdif_wrapper)
 {
-  SpdifWrapper filter;
+  SPDIFWrapper filter;
   open_stress_test(&filter);
 
   FileParser source;

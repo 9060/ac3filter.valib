@@ -25,8 +25,8 @@ public:
     switch (spdif_type)
     {
       // Dolby
-      case spdif_type_ac3: return &dolby.ac3;
-      case spdif_type_eac3: return &dolby.eac3;
+      case spdif_type_ac3: return &dolby;
+      case spdif_type_eac3: return &dolby;
 
       // DTS
       case spdif_type_dts_512:
@@ -50,8 +50,8 @@ public:
     switch (spdif_type)
     {
       // Dolby
-      case spdif_type_ac3: return &dolby.ac3;
-      case spdif_type_eac3: return &dolby.eac3;
+      case spdif_type_ac3: return &dolby;
+      case spdif_type_eac3: return &dolby;
 
       // DTS
       case spdif_type_dts_512:
