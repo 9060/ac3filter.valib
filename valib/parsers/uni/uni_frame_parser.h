@@ -3,6 +3,7 @@
 
 #include "../multi_header.h"
 #include "../aac/aac_adts_header.h"
+#include "../ac3/ac3_header.h"
 #include "../dolby/dolby_header.h"
 #include "../dts/dts_header.h"
 #include "../mpa/mpa_header.h"
@@ -12,6 +13,7 @@
 class UniFrameParser : public MultiFrameParser
 {
 public:
+  AC3FrameParser    ac3;
   ADTSFrameParser   adts;
   DolbyFrameParser  dolby;
   DTSFrameParser    dts;
