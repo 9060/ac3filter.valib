@@ -85,6 +85,33 @@ static const int eac3_nsamples_tbl[16] =
   1536, 1536, 1536, 1536
 };
 
+static enum strmtyp_e
+{
+  STRMTYP_INDEPENDENT = 0,
+  STRMTYP_DEPENDENT = 1,
+  STRMTYP_TRANSCODED_AC3 = 2
+};
+
+static const int chanmap2mask_tbl[16] =
+{
+  CH_MASK_L,
+  CH_MASK_C,
+  CH_MASK_R,
+  CH_MASK_SL,
+  CH_MASK_SR,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  CH_MASK_LFE,
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -118,6 +145,15 @@ static inline bool is_eac3_bsid(int bsid)
 static inline bool is_correct_bsid(int bsid)
 { return bsid >= 0 && bsid <= 16 && bsid != 9 && bsid != 10; }
 
+static inline int chanmap2mask(int chanmap)
+{
+  int mask = 0;
+  for (int i = 0; i < array_size(chanmap2mask_tbl); i++)
+    if (chanmap & (1 << i))
+      mask |= chanmap2mask_tbl[i];
+  return mask;
+}
+
 static bool parse_eac3_subframe_header(const uint8_t *hdr, DolbyFrameParser::SubframeInfo &info)
 {
   ReadBS bs;
@@ -135,9 +171,9 @@ static bool parse_eac3_subframe_header(const uint8_t *hdr, DolbyFrameParser::Sub
   }
 
   int strmtyp = bs.get(2);
-  if (strmtyp == 0 || strmtyp == 2)
+  if (strmtyp == STRMTYP_INDEPENDENT || strmtyp == STRMTYP_TRANSCODED_AC3)
     info.independent = true;
-  else if (strmtyp == 1)
+  else if (strmtyp == STRMTYP_DEPENDENT)
     info.independent = false;
   else
     return false;
@@ -161,25 +197,27 @@ static bool parse_eac3_subframe_header(const uint8_t *hdr, DolbyFrameParser::Sub
   if (!is_eac3_bsid(info.bsid))
     return false;
 
-  bs.get(5); // dialnorm
-  if (bs.get_bool()) // compre
-    bs.get(8); // compr
-
-  if (acmod == 0)
+  if (strmtyp == STRMTYP_DEPENDENT)
   {
-    bs.get(5); // dialnorm2
-    if (bs.get_bool()) // compre2
-      bs.get(8); // compr2
-  }
+    bs.get(5); // dialnorm
+    if (bs.get_bool()) // compre
+      bs.get(8); // compr
 
-  bool chanmape = bs.get_bool();
-  int chanmap = 0;
-  if (chanmape)
-  {
-    chanmap = bs.get(16);
-    info.mask = 0; // ignore right now
-  }
+    if (acmod == 0)
+    {
+      bs.get(5); // dialnorm2
+      if (bs.get_bool()) // compre2
+        bs.get(8); // compr2
+    }
 
+    bool chanmape = bs.get_bool();
+    int chanmap = 0;
+    if (chanmape)
+    {
+      chanmap = bs.get(16);
+      info.mask = chanmap2mask(chanmap);
+    }
+  }
   return true;
 }
 
