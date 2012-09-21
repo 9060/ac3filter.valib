@@ -818,7 +818,7 @@ BOOST_AUTO_TEST_CASE(parser_filter)
   SPDIFParser spdif;
 
   ParserFilter filter;
-  filter.add(&uni.dolby, &ac3);
+  filter.add(&uni.ac3,   &ac3);
   filter.add(&uni.adts,  &adts);
   filter.add(&uni.dts,   &dts);
   filter.add(&uni.dolby, &eac3);
