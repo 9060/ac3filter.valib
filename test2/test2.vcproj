@@ -596,6 +596,10 @@
 			>
 		</File>
 		<File
+			RelativePath=".\tests\test_byteorder.cpp"
+			>
+		</File>
+		<File
 			RelativePath=".\tests\test_crc.cpp"
 			>
 		</File>

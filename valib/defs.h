@@ -380,5 +380,32 @@ inline float    swab_float(float f) { uint32_t i = swab_u32(*(uint32_t *)&f); re
 #define be2uint16(i) swab_u16(i)
 #define le2uint16(i) (i)
 
+inline int32_t  read_int32be(const void *p)  { return be2int32(*(int32_t *)p);  }
+inline int32_t  read_int32le(const void *p)  { return le2int32(*(int32_t *)p);  }
+inline int24_t  read_int24be(const void *p)  { return be2int24(*(int24_t *)p);  }
+inline int24_t  read_int24le(const void *p)  { return le2int24(*(int24_t *)p);  }
+inline int16_t  read_int16be(const void *p)  { return be2int16(*(int16_t *)p);  }
+inline int16_t  read_int16le(const void *p)  { return le2int16(*(int16_t *)p);  }
+
+inline uint32_t read_uint32be(const void *p) { return be2uint32(*(uint32_t *)p); }
+inline uint32_t read_uint32le(const void *p) { return le2uint32(*(uint32_t *)p); }
+//inline uint24_t read_uint24be(const void *p) { return be2uint24(*(uint24_t *)p); }
+//inline uint24_t read_uint24le(const void *p) { return le2uint24(*(uint24_t *)p); }
+inline uint16_t read_uint16be(const void *p) { return be2uint16(*(uint16_t *)p); }
+inline uint16_t read_uint16le(const void *p) { return le2uint16(*(uint16_t *)p); }
+
+inline void write_int32be(const void *p, int32_t v)   { *(int32_t *)p = int2be32(v);  }
+inline void write_int32le(const void *p, int32_t v)   { *(int32_t *)p = int2le32(v);  }
+inline void write_int24be(const void *p, int24_t v)   { *(int24_t *)p = int2be24(v);  }
+inline void write_int24le(const void *p, int24_t v)   { *(int24_t *)p = int2le24(v);  }
+inline void write_int16be(const void *p, int16_t v)   { *(int16_t *)p = int2be16(v);  }
+inline void write_int16le(const void *p, int16_t v)   { *(int16_t *)p = int2le16(v);  }
+
+inline void write_uint32be(const void *p, uint32_t v) { *(uint32_t *)p = uint2be32(v); }
+inline void write_uint32le(const void *p, uint32_t v) { *(uint32_t *)p = uint2le32(v); }
+//inline void write_uint24be(const void *p, uint24_t v) { *(uint24_t *)p = uint2be24(v); }
+//inline void write_uint24le(const void *p, uint24_t v) { *(uint24_t *)p = uint2le24(v); }
+inline void write_uint16be(const void *p, uint16_t v) { *(uint16_t *)p = uint2be16(v); }
+inline void write_uint16le(const void *p, uint16_t v) { *(uint16_t *)p = uint2le16(v); }
 
 #endif
