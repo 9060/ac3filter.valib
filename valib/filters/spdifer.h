@@ -28,8 +28,7 @@ protected:
   SpdifWrapper spdif_wrapper;
 
 public:
-  Spdifer(int dts_mode = DTS_MODE_AUTO, int dts_conv = DTS_CONV_NONE):
-  spdif_wrapper(dts_mode, dts_conv)
+  Spdifer()
   {
     add(&frame_parser, &spdif_wrapper);
   }
@@ -37,14 +36,13 @@ public:
   /////////////////////////////////////////////////////////
   // Spdifer interface
 
-  int        get_dts_mode()                  const { return spdif_wrapper.dts_mode;       }
-  void       set_dts_mode(int dts_mode)            { spdif_wrapper.dts_mode = dts_mode;   }
+  int  get_dts_mode() const        { return spdif_wrapper.get_dts_mode();  }
+  void set_dts_mode(int dts_mode)  { spdif_wrapper.set_dts_mode(dts_mode); }
 
-  int        get_dts_conv()                  const { return spdif_wrapper.dts_conv;       }
-  void       set_dts_conv(int dts_conv)            { spdif_wrapper.dts_conv = dts_conv;   }
+  int  get_dts_conv() const        { return spdif_wrapper.get_dts_conv();  }
+  void set_dts_conv(int dts_conv)  { spdif_wrapper.set_dts_conv(dts_conv); }
 
-  FrameInfo  frame_info()                    const { return spdif_wrapper.frame_info();   }
-  string     info()                          const { return spdif_wrapper.info();         }
+  string info() const { return spdif_wrapper.info(); }
 };
 
 class Despdifer : public ParserFilter

@@ -69,28 +69,135 @@ static void test_streams_frames(const char *filename, int streams, int frames)
   check_streams_chunks(&f, &parser, streams, frames);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
 BOOST_AUTO_TEST_SUITE(spdif_wrapper)
 
 BOOST_AUTO_TEST_CASE(constructor)
 {
   SpdifWrapper spdifer;
-  BOOST_CHECK_EQUAL(spdifer.dts_mode, DTS_MODE_AUTO);
-  BOOST_CHECK_EQUAL(spdifer.dts_conv, DTS_CONV_NONE);
+
+  // Default state
+  BOOST_CHECK_EQUAL(spdifer.get_passthrough_mask(), SPDIF_PASS_ALL | HDMI_PASS_ALL);
+  BOOST_CHECK_EQUAL(spdifer.get_spdif_as_pcm(), false);
+  BOOST_CHECK_EQUAL(spdifer.get_check_rate(), true);
+  BOOST_CHECK_EQUAL(spdifer.get_rate_mask(), SPDIF_RATE_ALL);
+  BOOST_CHECK_EQUAL(spdifer.get_dts_mode(), DTS_MODE_AUTO);
+  BOOST_CHECK_EQUAL(spdifer.get_dts_conv(), DTS_CONV_NONE);
 }
 
-BOOST_AUTO_TEST_CASE(init_constructor)
+BOOST_AUTO_TEST_CASE(get_set)
 {
-  SpdifWrapper spdifer(DTS_MODE_WRAPPED, DTS_CONV_14BIT);
-  BOOST_CHECK_EQUAL(spdifer.dts_mode, DTS_MODE_WRAPPED);
-  BOOST_CHECK_EQUAL(spdifer.dts_conv, DTS_CONV_14BIT);
+  SpdifWrapper spdifer;
+
+  spdifer.set_passthrough_mask(0);
+  BOOST_CHECK_EQUAL(spdifer.get_passthrough_mask(), 0);
+  spdifer.set_passthrough_mask(SPDIF_PASS_ALL);
+  BOOST_CHECK_EQUAL(spdifer.get_passthrough_mask(), SPDIF_PASS_ALL);
+
+  spdifer.set_spdif_as_pcm(true);
+  BOOST_CHECK_EQUAL(spdifer.get_spdif_as_pcm(), true);
+  spdifer.set_spdif_as_pcm(false);
+  BOOST_CHECK_EQUAL(spdifer.get_spdif_as_pcm(), false);
+
+  spdifer.set_check_rate(true);
+  BOOST_CHECK_EQUAL(spdifer.get_check_rate(), true);
+  spdifer.set_check_rate(false);
+  BOOST_CHECK_EQUAL(spdifer.get_check_rate(), false);
+
+  spdifer.set_rate_mask(0);
+  BOOST_CHECK_EQUAL(spdifer.get_rate_mask(), 0);
+  spdifer.set_rate_mask(SPDIF_RATE_48);
+  BOOST_CHECK_EQUAL(spdifer.get_rate_mask(), SPDIF_RATE_48);
+
+  spdifer.set_dts_mode(DTS_MODE_PADDED);
+  BOOST_CHECK_EQUAL(spdifer.get_dts_mode(), DTS_MODE_PADDED);
+  spdifer.set_dts_mode(DTS_MODE_WRAPPED);
+  BOOST_CHECK_EQUAL(spdifer.get_dts_mode(), DTS_MODE_WRAPPED);
+
+  spdifer.set_dts_conv(DTS_CONV_16BIT);
+  BOOST_CHECK_EQUAL(spdifer.get_dts_conv(), DTS_CONV_16BIT);
+  spdifer.set_dts_conv(DTS_CONV_14BIT);
+  BOOST_CHECK_EQUAL(spdifer.get_dts_conv(), DTS_CONV_14BIT);
+}
+
+BOOST_AUTO_TEST_CASE(spdif_spk)
+{
+  SpdifWrapper spdifer;
+
+  // SPDIF
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_AC3, 0, 0)), Speakers(FORMAT_SPDIF, 0, 0));
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_AC3, MODE_5_1, 48000)), Speakers(FORMAT_SPDIF, MODE_5_1, 48000));
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_DTS, MODE_5_1, 48000)), Speakers(FORMAT_SPDIF, MODE_5_1, 48000));
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_MPA, MODE_5_1, 48000)), Speakers(FORMAT_SPDIF, MODE_5_1, 48000));
+  // HDMI
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_EAC3, MODE_5_1, 48000)), Speakers(FORMAT_SPDIF, MODE_5_1, 192000));
+
+  // SPDIF-as-PCM enabled
+  spdifer.set_spdif_as_pcm(true);
+  // SPDIF
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_AC3, 0, 0)), Speakers(FORMAT_PCM16, MODE_STEREO, 0));
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_AC3, MODE_5_1, 48000)), Speakers(FORMAT_PCM16, MODE_STEREO, 48000));
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_DTS, MODE_5_1, 48000)), Speakers(FORMAT_PCM16, MODE_STEREO, 48000));
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_MPA, MODE_5_1, 48000)), Speakers(FORMAT_PCM16, MODE_STEREO, 48000));
+  // HDMI
+  BOOST_CHECK_EQUAL(spdifer.spdif_spk(Speakers(FORMAT_EAC3, MODE_5_1, 48000)), Speakers(FORMAT_SPDIF, MODE_5_1, 192000));
 }
 
 BOOST_AUTO_TEST_CASE(can_open)
 {
   SpdifWrapper spdifer;
+
+  // Open anything by default
   BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 0)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 32000)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 44100)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 48000)));
   BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_DTS, 0, 0)));
   BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_MPA, 0, 0)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_EAC3, 0, 0)));
+
+  // Disable formats by one
+  int passthrough_mask = SPDIF_PASS_ALL | HDMI_PASS_ALL;
+  spdifer.set_passthrough_mask(passthrough_mask & ~SPDIF_PASS_AC3);
+  BOOST_CHECK(!spdifer.can_open(Speakers(FORMAT_AC3, 0, 0)));
+  spdifer.set_passthrough_mask(passthrough_mask & ~SPDIF_PASS_MPA);
+  BOOST_CHECK(!spdifer.can_open(Speakers(FORMAT_MPA, 0, 0)));
+  spdifer.set_passthrough_mask(passthrough_mask & ~SPDIF_PASS_DTS & ~HDMI_PASS_DTSHD);
+  BOOST_CHECK(!spdifer.can_open(Speakers(FORMAT_DTS, 0, 0)));
+  spdifer.set_passthrough_mask(passthrough_mask & ~HDMI_PASS_EAC3);
+  BOOST_CHECK(!spdifer.can_open(Speakers(FORMAT_EAC3, 0, 0)));
+  // DTS is allowed if either SPDIF/DTS or HDMI/DTS enabled.
+  spdifer.set_passthrough_mask(passthrough_mask & ~HDMI_PASS_DTSHD);
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_DTS, 0, 0)));
+  spdifer.set_passthrough_mask(passthrough_mask & ~SPDIF_PASS_DTS);
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_DTS, 0, 0)));
+  spdifer.set_passthrough_mask(passthrough_mask);
+
+  // Sample rate check does not work with spdif-as-pcm disabled.
+  spdifer.set_rate_mask(0);
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 0)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 32000)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 44100)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 48000)));
+  spdifer.set_rate_mask(SPDIF_RATE_ALL);
+
+  // Enable sample rate check
+  spdifer.set_spdif_as_pcm(true);
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 0)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 32000)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 44100)));
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 48000)));
+  // Disable rates be one
+  spdifer.set_rate_mask(SPDIF_RATE_ALL & ~SPDIF_RATE_32);
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 0)));
+  BOOST_CHECK(!spdifer.can_open(Speakers(FORMAT_AC3, 0, 32000)));
+  spdifer.set_rate_mask(SPDIF_RATE_ALL & ~SPDIF_RATE_44);
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 0)));
+  BOOST_CHECK(!spdifer.can_open(Speakers(FORMAT_AC3, 0, 44100)));
+  spdifer.set_rate_mask(SPDIF_RATE_ALL & ~SPDIF_RATE_48);
+  BOOST_CHECK(spdifer.can_open(Speakers(FORMAT_AC3, 0, 0)));
+  BOOST_CHECK(!spdifer.can_open(Speakers(FORMAT_AC3, 0, 48000)));
 }
 
 BOOST_AUTO_TEST_CASE(parse)
@@ -216,8 +323,10 @@ BOOST_AUTO_TEST_CASE(dts_options)
     BOOST_REQUIRE(f_ref.is_open());
 
     DTSFrameResize resize(tests[i].frame_size);
-    SpdifWrapper spdifer(tests[i].dts_mode, tests[i].dts_conv);
+    SpdifWrapper spdifer;
     SPDIFParser despdifer;
+    spdifer.set_dts_mode(tests[i].dts_mode);
+    spdifer.set_dts_conv(tests[i].dts_conv);
 
     FilterChain test(&resize, &spdifer);
     if (tests[i].mode != mode_pass)
