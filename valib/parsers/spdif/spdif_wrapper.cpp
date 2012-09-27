@@ -13,6 +13,27 @@ static const size_t hdmi_block_size8 = 16; // One 8ch PCM16 sample = 16 bytes.
 static const size_t max_hdmi_nsamples = 2048;
 static const size_t max_hdmi_frame_size = max_hdmi_nsamples * hdmi_block_size8;
 
+static const struct {
+  int format;
+  int spdif_mask;
+} spdif_format_tbl[] = {
+  { FORMAT_AC3,    SPDIF_PASS_AC3 },
+  { FORMAT_MPA,    SPDIF_PASS_MPA },
+  { FORMAT_DTS,    SPDIF_PASS_DTS },
+  { FORMAT_EAC3,   HDMI_PASS_EAC3 },
+  { FORMAT_TRUEHD, HDMI_PASS_TRUEHD },
+  { FORMAT_DTS,    HDMI_PASS_DTSHD }
+};
+
+static const struct {
+  int sample_rate;
+  int rate_mask;
+} spdif_rate_tbl[] = {
+  { 48000, SPDIF_RATE_48 },
+  { 44100, SPDIF_RATE_44 },
+  { 32000, SPDIF_RATE_32 }
+};
+
 struct spdif_header_t
 {
   uint16_t zero1;
@@ -58,13 +79,104 @@ static FrameParser *find_parser(SpdifableFrameParser &spdifable, Speakers spk)
   return 0;
 }
 
+static bool check_format(int passthrough_mask, int format)
+{
+  for (int i = 0; i < array_size(spdif_format_tbl); i++)
+    if ((format == spdif_format_tbl[i].format) &&
+        (passthrough_mask & spdif_format_tbl[i].spdif_mask))
+      return true;
+  return false;
+}
+
+static bool check_rate(int rate_mask, int sample_rate)
+{
+  for (int i = 0; i < array_size(spdif_rate_tbl); i++)
+    if ((sample_rate == spdif_rate_tbl[i].sample_rate) &&
+        (rate_mask & spdif_rate_tbl[i].rate_mask))
+      return true;
+  return false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // SpdifWrapper
 ///////////////////////////////////////////////////////////////////////////////
 
-SpdifWrapper::SpdifWrapper(int dts_mode_, int dts_conv_)
-:dts_mode(dts_mode_), dts_conv(dts_conv_), buf(max_hdmi_frame_size)
-{}
+SpdifWrapper::SpdifWrapper()
+: buf(max_hdmi_frame_size)
+{
+  passthrough_mask = SPDIF_PASS_ALL | HDMI_PASS_ALL;
+  spdif_as_pcm = false;
+  check_rate = true;
+  rate_mask = SPDIF_RATE_ALL;
+  dts_mode = DTS_MODE_AUTO;
+  dts_conv = DTS_CONV_NONE;
+}
+
+int SpdifWrapper::get_passthrough_mask() const
+{
+  return passthrough_mask;
+}
+
+void SpdifWrapper::set_passthrough_mask(int new_passthrough_mask)
+{
+  passthrough_mask = new_passthrough_mask;
+  reset();
+}
+
+bool SpdifWrapper::get_spdif_as_pcm() const
+{
+  return spdif_as_pcm;
+}
+
+void SpdifWrapper::set_spdif_as_pcm(bool new_spdif_as_pcm)
+{
+  spdif_as_pcm = new_spdif_as_pcm;
+  reset();
+}
+
+bool SpdifWrapper::get_check_rate() const
+{
+  return check_rate;
+}
+
+void SpdifWrapper::set_check_rate(bool new_check_rate)
+{
+  check_rate = new_check_rate;
+  reset();
+}
+
+int SpdifWrapper::get_rate_mask() const
+{
+  return rate_mask;
+}
+
+void SpdifWrapper::set_rate_mask(int new_rate_mask)
+{
+  rate_mask = new_rate_mask;
+  reset();
+}
+
+int SpdifWrapper::get_dts_mode() const
+{
+  return dts_mode;
+}
+
+void SpdifWrapper::set_dts_mode(int new_dts_mode)
+{
+  dts_mode = new_dts_mode;
+  reset();
+}
+
+int SpdifWrapper::get_dts_conv() const
+{
+  return dts_conv;
+}
+
+void SpdifWrapper::set_dts_conv(int new_dts_conv)
+{
+  dts_conv = new_dts_conv;
+  reset();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // SimpleFilter overrides
@@ -72,7 +184,18 @@ SpdifWrapper::SpdifWrapper(int dts_mode_, int dts_conv_)
 bool
 SpdifWrapper::can_open(Speakers spk) const
 {
-  return spdifable.can_parse(spk.format);
+  if (!spdifable.can_parse(spk.format))
+    return false;
+
+  if (!check_format(passthrough_mask, spk.format))
+    return false;
+
+  // Check sample rate in SPDIF-as-PCM mode
+  if (spdif_as_pcm && check_rate && spk.sample_rate &&
+    !::check_rate(rate_mask, spk.sample_rate))
+    return false;
+
+  return true;
 }
 
 bool
@@ -155,9 +278,25 @@ SpdifWrapper::process(Chunk &in, Chunk &out)
   return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+Speakers
+SpdifWrapper::spdif_spk(Speakers spk) const
+{
+  switch (spk.format)
+  {
+    case FORMAT_AC3:  return spdif_spk_ac3(spk);
+    case FORMAT_EAC3: return spdif_spk_eac3(spk);
+    case FORMAT_MPA:  return spdif_spk_mpa(spk);
+    case FORMAT_DTS:  return spdif_spk_dts(spk);
+  }
+  return Speakers();
+}
+
 bool
 SpdifWrapper::sync(const FrameInfo &finfo, uint8_t *frame, size_t size)
 {
+  out_spk = spdif_spk(finfo.spk);
   switch (finfo.spk.format)
   {
     case FORMAT_AC3:  return sync_ac3(finfo, frame, size);
@@ -168,20 +307,94 @@ SpdifWrapper::sync(const FrameInfo &finfo, uint8_t *frame, size_t size)
   return false;
 }
 
+size_t
+SpdifWrapper::wrap(const FrameInfo &finfo, uint8_t *frame, size_t size, uint8_t *dest)
+{
+  switch (finfo.spk.format)
+  {
+    case FORMAT_AC3:  return wrap_ac3(finfo, frame, size, dest);
+    case FORMAT_EAC3: return wrap_eac3(finfo, frame, size, dest);
+    case FORMAT_DTS:  return wrap_dts(finfo, frame, size, dest);
+    case FORMAT_MPA:  return wrap_mpa(finfo, frame, size, dest);
+  }
+  return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// AC3 (SPDIF)
+
+Speakers
+SpdifWrapper::spdif_spk_ac3(Speakers spk) const
+{
+  if (spdif_as_pcm)
+    return Speakers(FORMAT_PCM16, MODE_STEREO, spk.sample_rate);
+  return Speakers(FORMAT_SPDIF, spk.mask, spk.sample_rate);
+}
+
 bool
 SpdifWrapper::sync_ac3(const FrameInfo &finfo, uint8_t *frame, size_t size)
 {
   spdif_type = spdif_type_ac3;
-  out_spk = Speakers(FORMAT_SPDIF, finfo.spk.mask, finfo.spk.sample_rate);
   return true;
+}
+
+size_t
+SpdifWrapper::wrap_ac3(const FrameInfo &finfo, uint8_t *frame, size_t size, uint8_t *dest)
+{
+  size_t spdif_frame_size = finfo.nsamples * spdif_block_size;
+  if (spdif_frame_size > max_spdif_frame_size || size > spdif_frame_size - header_size)
+    return false;
+
+  size_t payload_size = bs_convert(frame, size, finfo.bs_type, dest + header_size, BITSTREAM_16LE);
+  assert(payload_size <= max_spdif_frame_size - header_size);
+  memset(dest + header_size + payload_size, 0, spdif_frame_size - header_size - payload_size);
+
+  spdif_header_t *header = (spdif_header_t *)dest;
+  header->set(spdif_type, (uint16_t)payload_size * 8);
+  return spdif_frame_size;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// EAC3 (HDMI)
+
+Speakers
+SpdifWrapper::spdif_spk_eac3(Speakers spk) const
+{
+  return Speakers(FORMAT_SPDIF, spk.mask, spk.sample_rate * 4);
 }
 
 bool
 SpdifWrapper::sync_eac3(const FrameInfo &finfo, uint8_t *frame, size_t size)
 {
   spdif_type = spdif_type_eac3;
-  out_spk = Speakers(FORMAT_SPDIF, finfo.spk.mask, finfo.spk.sample_rate * 4);
   return true;
+}
+
+size_t
+SpdifWrapper::wrap_eac3(const FrameInfo &finfo, uint8_t *frame, size_t size, uint8_t *dest)
+{
+  size_t hdmi_frame_size = finfo.nsamples * hdmi_block_size2 * 4; // single IEC61937 slot, but 4 times sample rate
+  if (hdmi_frame_size > max_hdmi_frame_size || size > hdmi_frame_size - header_size)
+    return false;
+
+  size_t payload_size = bs_convert(frame, size, finfo.bs_type, dest + header_size, BITSTREAM_16LE);
+  assert(payload_size <= max_hdmi_frame_size - header_size);
+  memset(dest + header_size + payload_size, 0, hdmi_frame_size - header_size - payload_size);
+
+  spdif_header_t *header = (spdif_header_t *)dest;
+  header->set(spdif_type, (uint16_t)payload_size);
+  return hdmi_frame_size;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// DTS (SPDIF)
+
+Speakers
+SpdifWrapper::spdif_spk_dts(Speakers spk) const
+{
+  if (spdif_as_pcm)
+    return Speakers(FORMAT_PCM16, MODE_STEREO, spk.sample_rate);
+  return Speakers(FORMAT_SPDIF, spk.mask, spk.sample_rate);
 }
 
 bool
@@ -218,91 +431,7 @@ SpdifWrapper::sync_dts(const FrameInfo &finfo, uint8_t *frame, size_t size)
     default: return false;
   }
 
-  out_spk = Speakers(FORMAT_SPDIF, finfo.spk.mask, finfo.spk.sample_rate);
   return true;
-}
-
-bool
-SpdifWrapper::sync_mpa(const FrameInfo &finfo, uint8_t *frame, size_t size)
-{
-  int version, layer;
-  if (finfo.bs_type == BITSTREAM_8)
-  {
-    version = (frame[1] >> 3) & 0x3;
-    layer = (frame[1] >> 1) & 0x3;
-  }
-  else
-  {
-    version = (frame[0] >> 3) & 0x3;
-    layer = (frame[0] >> 1) & 0x3;
-  }
-
-  switch (version)
-  {
-  case 3: // MPEG1
-    if (layer == 3) // Layer1
-      spdif_type = spdif_type_mpeg1_layer1;
-    else // Layer2 & Layer3
-      spdif_type = spdif_type_mpeg1_layer23;
-    break;
-
-  case 2: // MPEG2 LSF
-    if (layer == 3) // Layer1
-      spdif_type = spdif_type_mpeg2_lsf_layer1;
-    if (layer == 2) // Layer2
-      spdif_type = spdif_type_mpeg2_lsf_layer2;
-    else // Layer3
-      spdif_type = spdif_type_mpeg2_lsf_layer3;
-    break;
-  }
-
-  out_spk = Speakers(FORMAT_SPDIF, finfo.spk.mask, finfo.spk.sample_rate);
-  return true;
-}
-
-size_t
-SpdifWrapper::wrap(const FrameInfo &finfo, uint8_t *frame, size_t size, uint8_t *dest)
-{
-  switch (finfo.spk.format)
-  {
-    case FORMAT_AC3:  return wrap_ac3(finfo, frame, size, dest);
-    case FORMAT_EAC3: return wrap_eac3(finfo, frame, size, dest);
-    case FORMAT_DTS:  return wrap_dts(finfo, frame, size, dest);
-    case FORMAT_MPA:  return wrap_mpa(finfo, frame, size, dest);
-  }
-  return false;
-}
-
-size_t
-SpdifWrapper::wrap_ac3(const FrameInfo &finfo, uint8_t *frame, size_t size, uint8_t *dest)
-{
-  size_t spdif_frame_size = finfo.nsamples * spdif_block_size;
-  if (spdif_frame_size > max_spdif_frame_size || size > spdif_frame_size - header_size)
-    return false;
-
-  size_t payload_size = bs_convert(frame, size, finfo.bs_type, dest + header_size, BITSTREAM_16LE);
-  assert(payload_size <= max_spdif_frame_size - header_size);
-  memset(dest + header_size + payload_size, 0, spdif_frame_size - header_size - payload_size);
-
-  spdif_header_t *header = (spdif_header_t *)dest;
-  header->set(spdif_type, (uint16_t)payload_size * 8);
-  return spdif_frame_size;
-}
-
-size_t
-SpdifWrapper::wrap_eac3(const FrameInfo &finfo, uint8_t *frame, size_t size, uint8_t *dest)
-{
-  size_t hdmi_frame_size = finfo.nsamples * hdmi_block_size2 * 4; // single IEC61937 slot, but 4 times sample rate
-  if (hdmi_frame_size > max_hdmi_frame_size || size > hdmi_frame_size - header_size)
-    return false;
-
-  size_t payload_size = bs_convert(frame, size, finfo.bs_type, dest + header_size, BITSTREAM_16LE);
-  assert(payload_size <= max_hdmi_frame_size - header_size);
-  memset(dest + header_size + payload_size, 0, hdmi_frame_size - header_size - payload_size);
-
-  spdif_header_t *header = (spdif_header_t *)dest;
-  header->set(spdif_type, (uint16_t)payload_size);
-  return hdmi_frame_size;
 }
 
 size_t
@@ -404,6 +533,54 @@ SpdifWrapper::wrap_dts(const FrameInfo &finfo, uint8_t *frame, size_t size, uint
   }
 
   return spdif_frame_size;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// MPA (SPDIF)
+
+Speakers
+SpdifWrapper::spdif_spk_mpa(Speakers spk) const
+{
+  if (spdif_as_pcm)
+    return Speakers(FORMAT_PCM16, MODE_STEREO, spk.sample_rate);
+  return Speakers(FORMAT_SPDIF, spk.mask, spk.sample_rate);
+}
+
+bool
+SpdifWrapper::sync_mpa(const FrameInfo &finfo, uint8_t *frame, size_t size)
+{
+  int version, layer;
+  if (finfo.bs_type == BITSTREAM_8)
+  {
+    version = (frame[1] >> 3) & 0x3;
+    layer = (frame[1] >> 1) & 0x3;
+  }
+  else
+  {
+    version = (frame[0] >> 3) & 0x3;
+    layer = (frame[0] >> 1) & 0x3;
+  }
+
+  switch (version)
+  {
+  case 3: // MPEG1
+    if (layer == 3) // Layer1
+      spdif_type = spdif_type_mpeg1_layer1;
+    else // Layer2 & Layer3
+      spdif_type = spdif_type_mpeg1_layer23;
+    break;
+
+  case 2: // MPEG2 LSF
+    if (layer == 3) // Layer1
+      spdif_type = spdif_type_mpeg2_lsf_layer1;
+    if (layer == 2) // Layer2
+      spdif_type = spdif_type_mpeg2_lsf_layer2;
+    else // Layer3
+      spdif_type = spdif_type_mpeg2_lsf_layer3;
+    break;
+  }
+
+  return true;
 }
 
 size_t

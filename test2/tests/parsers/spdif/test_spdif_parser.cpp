@@ -71,8 +71,9 @@ BOOST_AUTO_TEST_CASE(dts_spdif)
   f.open_probe("a.dts.03f.dts", &frame_parser);
   BOOST_REQUIRE(f.is_open());
 
-  SpdifWrapper spdifer(DTS_MODE_PADDED);
+  SpdifWrapper spdifer;
   SPDIFParser parser;
+  spdifer.set_dts_mode(DTS_MODE_PADDED);
 
   // Test chain: FileParser -> (DTS) -> DTSFrameResize
   FileParser f_ref;
